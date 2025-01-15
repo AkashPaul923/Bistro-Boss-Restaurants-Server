@@ -30,6 +30,7 @@ async function run() {
 
     const menuCollection = client.db("BistroBossRestaurantDB").collection("menu")
     const reviewCollection = client.db("BistroBossRestaurantDB").collection("reviews")
+    const cartCollection = client.db("BistroBossRestaurantDB").collection("carts")
 
 
 
@@ -41,6 +42,19 @@ async function run() {
 
 
 
+    // cart apis
+    app.post('/carts', async (req, res) =>{
+      const newCart = req.body
+      const result = await cartCollection.insertOne(newCart)
+      res.send(result)
+    })
+
+
+    // review apis
+    app.get('/reviews', async (req, res) => {
+      const result = await reviewCollection.find().toArray()
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
