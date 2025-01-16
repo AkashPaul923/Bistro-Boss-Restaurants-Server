@@ -34,6 +34,22 @@ async function run() {
     const reviewCollection = client.db("BistroBossRestaurantDB").collection("reviews")
     const cartCollection = client.db("BistroBossRestaurantDB").collection("carts")
 
+    // middleware
+    const verifyToken = (req, res, next) => {
+      if(!req.headers.authorization){
+        return res.status(401).send({message : 'Access Forbidden'})
+      }
+      const token = req.headers.authorization.split(' ')[1]
+      jwt.verify(token, process.env.SECRET_ACCESS_TOKEN, (error, decoded) => {
+        if(error){
+          return res.status(401).send({message : 'Access Forbidden'})
+        }
+        req.decoded = decoded
+        next()
+      })
+      // 
+    }
+
     // jwt related token
     app.post('/jwt', async (req, res) => {
       const user = req.body
@@ -43,9 +59,23 @@ async function run() {
 
 
     // user related apis
-    app.get('/users', async (req, res) => {
+    app.get('/users', verifyToken, async (req, res) => {
       const result = await userCollection.find().toArray()
       res.send(result)
+    })
+
+    app.get('/users/admin/:email', verifyToken, async (req, res) => {
+      const email = req.params.email
+      if(email !== req.decoded.email){
+        return res.status(403).send({message : 'Unauthorized Access'})
+      }
+      const query = { email : email}
+      const user = await userCollection.findOne(query)
+      let admin = false
+      if(user){
+        admin = user?.role === "Admin"
+      }
+      res.send({ admin })
     })
 
 
