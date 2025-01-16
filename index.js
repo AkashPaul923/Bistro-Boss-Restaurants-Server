@@ -37,17 +37,30 @@ async function run() {
     // middleware
     const verifyToken = (req, res, next) => {
       if(!req.headers.authorization){
-        return res.status(401).send({message : 'Access Forbidden'})
+        return res.status(401).send({message : 'Unauthorized Access'})
       }
       const token = req.headers.authorization.split(' ')[1]
       jwt.verify(token, process.env.SECRET_ACCESS_TOKEN, (error, decoded) => {
         if(error){
-          return res.status(401).send({message : 'Access Forbidden'})
+          return res.status(401).send({message : 'Unauthorized Access'})
         }
+        // console.log(decoded);
         req.decoded = decoded
         next()
       })
       // 
+    }
+
+    // Admin verify 
+    const adminVerify = async ( req, res, next ) => {
+      const email = req.decoded.email
+      const query = { email : email }
+      const user = await userCollection.findOne(query)
+      const isAdmin = user?.role === "Admin"
+      if(!isAdmin){
+        return res.status(403).send({message : 'Access Forbidden'})
+      }
+      next()
     }
 
     // jwt related token
@@ -59,7 +72,7 @@ async function run() {
 
 
     // user related apis
-    app.get('/users', verifyToken, async (req, res) => {
+    app.get('/users', verifyToken, adminVerify, async (req, res) => {
       const result = await userCollection.find().toArray()
       res.send(result)
     })
@@ -67,7 +80,7 @@ async function run() {
     app.get('/users/admin/:email', verifyToken, async (req, res) => {
       const email = req.params.email
       if(email !== req.decoded.email){
-        return res.status(403).send({message : 'Unauthorized Access'})
+        return res.status(403).send({message : 'Access Forbidden'})
       }
       const query = { email : email}
       const user = await userCollection.findOne(query)
@@ -93,7 +106,7 @@ async function run() {
       res.send(result)
     })
 
-    app.patch('/users/:id', async (req, res) => {
+    app.patch('/users/:id', verifyToken, adminVerify, async (req, res) => {
       const id = req.params
       const filter = { _id : new ObjectId(id)}
       const updatedData = {
@@ -106,7 +119,7 @@ async function run() {
     })
 
 
-    app.delete('/users/:id', async (req, res) => {
+    app.delete('/users/:id', verifyToken, adminVerify, async (req, res) => {
       const id = req.params
       const query = { _id : new ObjectId(id) }
       const result = await userCollection.deleteOne(query)
@@ -124,20 +137,20 @@ async function run() {
 
 
     // cart apis
-    app.get('/carts', async (req, res) => {
+    app.get('/carts', verifyToken, async (req, res) => {
       const {email} = req.query
       const query = {userEmail : email}
       const result = await cartCollection.find(query).toArray()
       res.send(result)
     })
 
-    app.post('/carts', async (req, res) =>{
+    app.post('/carts', verifyToken,  async (req, res) =>{
       const newCart = req.body
       const result = await cartCollection.insertOne(newCart)
       res.send(result)
     })
 
-    app.delete('/carts/:id', async (req, res) => {
+    app.delete('/carts/:id', verifyToken, async (req, res) => {
       const id = req.params
       const query = {_id : new ObjectId(id)}
       const result = await cartCollection.deleteOne(query)
