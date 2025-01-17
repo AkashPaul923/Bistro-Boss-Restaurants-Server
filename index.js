@@ -140,6 +140,13 @@ async function run() {
       res.send(result)
     })
 
+    app.delete('/menu/:id', verifyToken, adminVerify, async (req, res) => {
+      const id = req.params
+      const query = { _id : new ObjectId(id) }
+      const result = await menuCollection.deleteOne(query)
+      res.send(result)
+    })
+
 
 
     // cart apis
