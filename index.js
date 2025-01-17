@@ -130,8 +130,14 @@ async function run() {
 
     // menu apis
     app.get('/menu', async (req, res) => {
-        const result = await menuCollection.find().toArray()
-        res.send(result)
+      const result = await menuCollection.find().toArray()
+      res.send(result)
+    })
+
+    app.post('/menu', verifyToken, adminVerify, async (req, res) => {
+      const newMenu = req.body
+      const result = await menuCollection.insertOne(newMenu)
+      res.send(result)
     })
 
 
