@@ -209,10 +209,13 @@ async function run() {
     app.get('/payments/:email', verifyToken, async (req, res)=>{
       const email = req.params.email
       const query = { email : email}
+      const options = {
+        sort: { date : -1 }
+      }
       if( email !== req.decoded.email ){
         return res.status(403).send({message : 'Access Forbidden'})
       }
-      const result = await paymentCollection.find(query).toArray()
+      const result = await paymentCollection.find(query, options).toArray()
       res.send(result)
     })
 
@@ -246,6 +249,31 @@ async function run() {
       res.send({clientSecret: paymentIntent.client_secret})
     })
 
+
+    // Admin stats api
+    app.get('/admin-stats', verifyToken, adminVerify, async ( req, res ) => {
+      const totalUser = await userCollection.estimatedDocumentCount()
+      const totalMenu = await menuCollection.estimatedDocumentCount()
+      const totalOrder = await paymentCollection.estimatedDocumentCount()
+      const result = await paymentCollection.aggregate([
+        {
+          $group: {
+            _id : null,
+            totalPrice: {
+              $sum : "$price"
+            }
+          }
+        }
+      ]).toArray()
+      const revenue = result.length > 0 ? result[0].totalPrice : 0
+
+      res.send({
+        totalUser,
+        totalMenu,
+        totalOrder,
+        revenue
+      })
+    })
 
 
 
