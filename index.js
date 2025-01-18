@@ -34,6 +34,7 @@ async function run() {
     const menuCollection = client.db("BistroBossRestaurantDB").collection("menu")
     const reviewCollection = client.db("BistroBossRestaurantDB").collection("reviews")
     const cartCollection = client.db("BistroBossRestaurantDB").collection("carts")
+    const paymentCollection = client.db("BistroBossRestaurantDB").collection("payments")
 
     // middleware
     const verifyToken = (req, res, next) => {
@@ -202,6 +203,22 @@ async function run() {
       res.send(result)
     })
 
+
+    // Payment related apis
+
+    app.post('/payments', async (req, res)=>{
+      const payment = req.body
+      const paymentResult = await paymentCollection.insertOne(payment)
+
+      // Delete cart item
+      const query = { _id : {
+        $in: payment.cartIds.map( id => new ObjectId(id))
+      }}
+
+      const deleteResult = await cartCollection.deleteMany(query)
+
+      res.send({paymentResult, deleteResult})
+    })
 
 
     // Payment Intent
